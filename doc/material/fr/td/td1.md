@@ -30,7 +30,7 @@ Pour ce faire, vous devriez utiliser un IDE compatible avec les devcontainers, t
 1. Ouvrir une fenêtre dans Visual Studio Code.
 2. Deux possibilités :
     - Vous avez un démon docker à disposition.
-        - Installer l'extension "Remote - Containers"
+        - Installer l'extension "Dev Containers"
     - Vous n'avez pas de démon docker local.
         - Installer l'extension "Remote - SSH"
         - Se connecter au serveur distant :
@@ -38,7 +38,7 @@ Pour ce faire, vous devriez utiliser un IDE compatible avec les devcontainers, t
             2. Entrer l'adresse de votre serveur.
             3. Entrer votre nom d'utilisateur et mot de passe si nécessaire.
             5. Optionel: Créer une clé SSH sur votre hôte local et ajouter la partie publique au fichier `~/.ssh/authorized_keys` de votre serveur distant.
-        - Installer l'extension "Remote - Containers"
+        - Installer l'extension "Dev Containers"
 3. Utilisez le terminal ou l'explorateur de fichiers pour créer un nouveau répertoire de projet.
 4. Ouvrir votre dossier de projet
 5. Créer un fichier `.devcontainer/devcontainer.json` avec le contenu suivant :
@@ -49,7 +49,7 @@ Pour ce faire, vous devriez utiliser un IDE compatible avec les devcontainers, t
     "workspaceFolder": "/workspace"
 }
 ```
-6. Ouvrir le dossier du projet dans un conteneur en utilisant la commande "Remote-Containers: Reopen Folder in Container".
+6. Ouvrir le dossier du projet dans un conteneur en utilisant la commande "Dev Containers: Reopen Folder in Container".
 7. Explorer l'environnement de développement disponible.
 
 ### Résultats attendus
@@ -61,7 +61,7 @@ Diagramme :
 graph TD
     subgraph VSCode[💻 Visual Studio Code]
         A1[Extension Remote - SSH]
-        A2[Extension Remote - Containers]
+        A2[Extension Dev Containers]
     end
 
     subgraph Host[🧩 Hôte local]
