@@ -174,7 +174,7 @@ services:
 
 - Limiter la mémoire d'un service Quarkus :
 ```bash
-gradle <ma_commande> -Xmx200m
+gradle -Dorg.gradle.jvmargs=-Xmx200m <ma_commande>
 ```
 
 - Limiter la mémoire du process Node.js pour le front-end :
