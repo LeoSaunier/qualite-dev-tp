@@ -106,6 +106,76 @@ pnpm run --filter apps-store-front start
 ### Production deployment
 
 TODO
+
+## Collaboration
+
+### Modèle de contrôle de version
+
+- Stratégie: Trunk-Based Development avec branches de courte durée.
+- Les équipes travaillent sur des branches `feature/`, `fix/`, `chore/`, puis fusionnent régulièrement vers `main`.
+- Une branche `release/x.y.z` est créée lors de la préparation d'une version pour stabiliser et corriger sans bloquer `main`.
+
+### Stratégie de branchement
+
+- Noms de branches:
+  - `feature/<scope>-<desc-courte>` (ex: `feature/product-registry-create`)
+  - `fix/<scope>-<desc-courte>`
+  - `chore/<scope>-<desc-courte>`
+  - `release/0.1.0`
+- Fusion: privilégier le squash merge avec une description propre.
+- Revues: au moins 1 reviewer de l'autre équipe pour les changements cross-modules.
+
+### Responsabilités des équipes
+
+- Équipe Command/Write:
+  - Services de commande (apps/product-registry-domain-service, apps/store-back)
+  - Contrats write (libs/contracts/*)
+  - Domaine et validations (libs/kernel)
+  - SQL de base (libs/sql)
+- Équipe Read/UI:
+  - Services de lecture (apps/product-registry-read-service)
+  - Front-end (apps/store-front)
+  - Projections/outbox, DTO read (libs/contracts read)
+- Partagé: `libs/bom-platform`, `libs/cqrs-support` et conventions.
+
+### Règles de contribution
+
+- Commits: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`...).
+- Tests & Lint: exécuter `gradle build` et `pnpm mega-linter-runner -p $WORKSPACE_ROOT` avant MR.
+- Documentation: mettre à jour README/CONTRIBUTING et docs liées à la modification.
+- Voir les détails dans [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Versioning & Release
+
+- Versionnement sémantique par module (SemVer). Incrémentez uniquement les modules impactés.
+- Baseline: `0.1.0` (précoce, non production).
+- Tag: `v0.1.0` au niveau du monorepo avec notes de version.
+- Commandes utiles:
+
+```bash
+# Créer la branche de release
+git checkout -b release/0.1.0
+
+# Mettre à jour les versions des modules impactés (exemples)
+sed -i 's/0.1.0-SNAPSHOT/0.1.0/' apps/product-registry-domain-service/build.gradle
+sed -i 's/0.1.0-SNAPSHOT/0.1.0/' apps/product-registry-read-service/build.gradle
+sed -i 's/0.1.0-SNAPSHOT/0.1.0/' libs/kernel/build.gradle
+
+# Build & tests
+gradle build
+
+# Tag + notes
+git tag -a v0.1.0 -m "Release 0.1.0: baseline du monorepo"
+
+# Pousser
+git push origin release/0.1.0 --tags
+```
+
+## Journal de bord
+
+Le journal est initialisé dans [doc/journal/README.md](doc/journal/README.md) et regroupe:
+- Décisions architecturales et techniques importantes
+- Réponses aux questions du TP pour l'évaluation
     
 ## Authors
 
