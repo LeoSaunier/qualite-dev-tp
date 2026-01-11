@@ -8,7 +8,13 @@ import org.ormi.priv.tfa.orderflow.contracts.productregistry.v1.write.RegisterPr
 import org.ormi.priv.tfa.orderflow.kernel.product.SkuIdMapper;
 
 /**
- * TODO: Complete Javadoc
+ * Mapper de DTO pour les commandes du registre de produits.
+ *
+ * Convertit entre le DTO d'entrée/sortie {@link RegisterProductCommandDto} et
+ * la commande de domaine {@link RegisterProductCommand}. Généré via MapStruct
+ * avec {@code componentModel = "cdi"} et utilisation de {@link SkuIdMapper}.
+ *
+ * @since 1.0
  */
 
 @Mapper(
@@ -18,6 +24,19 @@ import org.ormi.priv.tfa.orderflow.kernel.product.SkuIdMapper;
     unmappedTargetPolicy = ReportingPolicy.IGNORE
 )
 public interface CommandDtoMapper {
+    /**
+     * Convertit un DTO en commande de domaine.
+     *
+     * @param dto DTO de création de produit
+     * @return commande de domaine
+     */
     public RegisterProductCommand toCommand(RegisterProductCommandDto dto);
+
+    /**
+     * Convertit une commande de domaine en DTO.
+     *
+     * @param command commande de domaine
+     * @return DTO correspondant
+     */
     public RegisterProductCommandDto toDto(RegisterProductCommand command);
 }

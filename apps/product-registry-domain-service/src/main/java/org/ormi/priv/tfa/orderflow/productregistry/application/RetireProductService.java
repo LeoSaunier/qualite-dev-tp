@@ -15,7 +15,16 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
- * TODO: Complete Javadoc
+ * Service d'application responsable de la mise hors service (retrait) d'un produit.
+ *
+ * Ce service charge le produit, déclenche l'événement de domaine
+ * {@code ProductRetired}, persiste l'état, journalise l'événement dans le
+ * journal des événements, puis publie le message via l'outbox.
+ *
+ * Il s'inscrit dans un schéma CQRS avec journalisation d'événements et
+ * publication outbox afin d'assurer fiabilité et traçabilité des opérations.
+ *
+ * @since 1.0
  */
 @ApplicationScoped
 public class RetireProductService {
@@ -27,6 +36,12 @@ public class RetireProductService {
     @Inject
     OutboxRepository outbox;
 
+    /**
+     * Retire un produit du registre et publie l'événement associé.
+     *
+     * @param cmd commande contenant l'identifiant du produit à retirer
+     * @throws IllegalArgumentException si le produit n'existe pas
+     */
     @Transactional
     public void retire(RetireProductCommand cmd) throws IllegalArgumentException {
         Product product = repository.findById(cmd.productId())

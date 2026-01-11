@@ -17,7 +17,17 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
- * TODO: Complete Javadoc
+ * Service d'application responsable de la mise à jour des attributs d'un produit.
+ *
+ * Gère les deux opérations suivantes :
+ * <ul>
+ *   <li>Mise à jour du nom ({@code ProductNameUpdated})</li>
+ *   <li>Mise à jour de la description ({@code ProductDescriptionUpdated})</li>
+ * </ul>
+ * Chaque opération persiste l'état du produit, journalise l'événement de
+ * domaine dans le journal des événements et publie un message via l'outbox.
+ *
+ * @since 1.0
  */
 
 @ApplicationScoped
@@ -38,6 +48,12 @@ public class UpdateProductService {
         this.outbox = outbox;
     }
 
+    /**
+     * Met à jour le nom du produit et publie l'événement correspondant.
+     *
+     * @param cmd commande contenant l'identifiant du produit et le nouveau nom
+     * @throws IllegalArgumentException si le produit n'existe pas
+     */
     @Transactional
     public void handle(UpdateProductNameCommand cmd) throws IllegalArgumentException {
         Product product = repository.findById(cmd.productId())
@@ -55,6 +71,12 @@ public class UpdateProductService {
         );
     }
 
+    /**
+     * Met à jour la description du produit et publie l'événement correspondant.
+     *
+     * @param cmd commande contenant l'identifiant du produit et la nouvelle description
+     * @throws IllegalArgumentException si le produit n'existe pas
+     */
     @Transactional
     public void handle(UpdateProductDescriptionCommand cmd) throws IllegalArgumentException {
         Product product = repository.findById(cmd.productId())

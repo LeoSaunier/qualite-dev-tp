@@ -72,6 +72,9 @@ catalogs:
     karma-jasmine-html-reporter:
       specifier: ^2.1.0
       version: 2.1.0
+    mega-linter-runner:
+      specifier: ^9.0.0
+      version: 9.3.0
     mermaid:
       specifier: ~11.12.0
       version: 11.12.0
@@ -108,7 +111,7 @@ importers:
         specifier: 'catalog:'
         version: 20.3.2(@types/node@22.8.6)(chokidar@4.0.3)
       mega-linter-runner:
-        specifier: ^9.3.0
+        specifier: 'catalog:'
         version: 9.3.0(@types/node@22.8.6)(@yeoman/adapter@3.1.1(@types/node@22.8.6))(@yeoman/types@1.9.1(@types/node@22.8.6)(@yeoman/adapter@3.1.1(@types/node@22.8.6))(mem-fs-editor@11.1.4(mem-fs@4.1.3))(mem-fs@4.1.3))
 
   apps/store-front:
@@ -4084,10 +4087,6 @@ packages:
     resolution: {integrity: sha512-VP79XUPxV2CigYP3jWwAUFSku2aKqBH7uTAapFWCBqutsbmDo96KY5o8uh6U+/YSIn5OxJnXp73beVkpqMIGhA==}
     engines: {node: '>=18'}
 
-  minimatch@10.0.3:
-    resolution: {integrity: sha512-IPZ167aShDZZUMdRk66cyQAW3qr0WzbHkPdMYa8bzZhlHhO3jALbKdxcaak7W9FfT2rZNpQuUu4Od7ILEpXSaw==}
-    engines: {node: 20 || >=22}
-
   minimatch@10.1.1:
     resolution: {integrity: sha512-enIvLvRAFZYXJzkCYG5RKmPfrFArdLv+R+lbQ53BmIMLIry74bjKzX6iHAm8WYamJkhSSEabrWN5D97XnKObjQ==}
     engines: {node: 20 || >=22}
@@ -6747,7 +6746,7 @@ snapshots:
       hosted-git-info: 9.0.0
       json-stringify-nice: 1.1.4
       lru-cache: 11.2.2
-      minimatch: 10.0.3
+      minimatch: 10.1.1
       nopt: 9.0.0
       npm-install-checks: 8.0.0
       npm-package-arg: 13.0.0
@@ -6811,7 +6810,7 @@ snapshots:
       '@npmcli/name-from-folder': 4.0.0
       '@npmcli/package-json': 7.0.4
       glob: 13.0.0
-      minimatch: 10.0.3
+      minimatch: 10.1.1
 
   '@npmcli/metavuln-calculator@9.0.3':
     dependencies:
@@ -7643,7 +7642,7 @@ snapshots:
 
   '@yeoman/adapter@3.1.1(@types/node@22.8.6)':
     dependencies:
-      '@inquirer/core': 10.2.2(@types/node@22.8.6)
+      '@inquirer/core': 10.3.2(@types/node@22.8.6)
       chalk: 5.6.2
       inquirer: 12.11.1(@types/node@22.8.6)
       log-symbols: 7.0.1
@@ -7665,7 +7664,7 @@ snapshots:
       isbinaryfile: 5.0.7
       mem-fs: 4.1.3
       mem-fs-editor: 11.1.4(mem-fs@4.1.3)
-      minimatch: 10.0.3
+      minimatch: 10.1.1
       p-transform: 5.0.1
       pretty-bytes: 7.1.0
       slash: 5.1.0
@@ -7917,7 +7916,7 @@ snapshots:
       minipass-pipeline: 1.2.4
       p-map: 7.0.3
       ssri: 12.0.0
-      tar: 7.5.1
+      tar: 7.5.2
       unique-filename: 4.0.0
 
   cacache@20.0.3:
@@ -8979,7 +8978,7 @@ snapshots:
 
   ignore-walk@8.0.0:
     dependencies:
-      minimatch: 10.0.3
+      minimatch: 10.1.1
 
   ignore@7.0.5: {}
 
@@ -9601,10 +9600,6 @@ snapshots:
 
   mimic-function@5.0.1: {}
 
-  minimatch@10.0.3:
-    dependencies:
-      '@isaacs/brace-expansion': 5.0.0
-
   minimatch@10.1.1:
     dependencies:
       '@isaacs/brace-expansion': 5.0.0
@@ -9746,7 +9741,7 @@ snapshots:
       nopt: 8.1.0
       proc-log: 5.0.0
       semver: 7.7.2
-      tar: 7.5.1
+      tar: 7.5.2
       tinyglobby: 0.2.15
       which: 5.0.0
     transitivePeerDependencies:
@@ -10035,7 +10030,7 @@ snapshots:
       promise-retry: 2.0.1
       sigstore: 4.1.0
       ssri: 13.0.0
-      tar: 7.5.1
+      tar: 7.5.2
     transitivePeerDependencies:
       - supports-color
 

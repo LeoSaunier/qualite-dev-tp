@@ -1,3 +1,18 @@
+/**
+ * Service d'application responsable de l'enregistrement de nouveaux produits.
+ * 
+ * Cette classe gère le flux complet de création d'un produit, incluant :
+ * - La validation de l'unicité du SKU
+ * - La création et la persistance de l'entité produit
+ * - L'enregistrement de l'événement de domaine dans le journal des événements
+ * - La publication de l'événement via la boîte de sortie (outbox)
+ * 
+ * Elle implémente le pattern CQRS avec gestion des événements de domaine
+ * pour assurer la cohérence et la traçabilité des opérations.
+ * 
+ * @author [À compléter]
+ * @version 1.0
+ */
 package org.ormi.priv.tfa.orderflow.productregistry.application;
 
 import org.ormi.priv.tfa.orderflow.cqrs.EventEnvelope;
@@ -15,9 +30,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
-/**
- * TODO: Complete Javadoc
- */
+
 
 @ApplicationScoped
 public class RegisterProductService {

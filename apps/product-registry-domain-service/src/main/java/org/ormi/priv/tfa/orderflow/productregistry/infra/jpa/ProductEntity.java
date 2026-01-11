@@ -17,7 +17,19 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * TODO: Complete Javadoc
+ * Entité JPA représentant un produit dans le registre.
+ *
+ * Les champs incluent l'identifiant technique ({@link UUID}), le nom, la
+ * description, l'identifiant fonctionnel SKU, le statut de cycle de vie
+ * ({@link ProductLifecycle}) et la version pour le contrôle d'optimisme.
+ *
+ * Contraintes:
+ * <ul>
+ *   <li>Unicité du SKU via l'index {@code ux_products_sku}</li>
+ *   <li>Colonnes non nulles pour assurer l'intégrité des données</li>
+ * </ul>
+ *
+ * @since 1.0
  */
 
 @Getter

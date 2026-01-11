@@ -16,7 +16,14 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
- * TODO: Complete Javadoc
+ * Implémentation JPA de {@link ProductRepository} basée sur Panache.
+ *
+ * Ce dépôt gère la persistance des produits, la recherche par identifiant,
+ * et la vérification d'existence par {@link SkuId}. Les conversions entre
+ * modèle de domaine et entités JPA sont déléguées à {@link ProductJpaMapper}
+ * et aux mappers d'identifiants ({@link ProductIdMapper}, {@link SkuIdMapper}).
+ *
+ * @since 1.0
  */
 
 @ApplicationScoped
@@ -33,6 +40,12 @@ public class JpaProductRepository implements PanacheRepositoryBase<ProductEntity
         this.skuIdMapper = skuIdMapper;
     }
 
+    /**
+     * Persiste le produit : met à jour l'entité existante ou insère une nouvelle
+     * entité si elle n'existe pas.
+     *
+     * @param product produit à persister
+     */
     @Override
     @Transactional
     public void save(Product product) {
@@ -45,12 +58,24 @@ public class JpaProductRepository implements PanacheRepositoryBase<ProductEntity
                 });
     }
 
+    /**
+     * Recherche un produit par identifiant.
+     *
+     * @param id identifiant produit
+     * @return produit optionnel
+     */
     @Override
     public Optional<Product> findById(ProductId id) {
         return findByIdOptional(productIdMapper.map(id))
                 .map(mapper::toDomain);
     }
 
+    /**
+     * Vérifie l'existence d'un produit à partir de son {@link SkuId}.
+     *
+     * @param skuId identifiant SKU
+     * @return {@code true} si un produit existe avec ce SKU, sinon {@code false}
+     */
     @Override
     public boolean existsBySkuId(SkuId skuId) {
         return count("skuId", skuIdMapper.map(skuId)) > 0;

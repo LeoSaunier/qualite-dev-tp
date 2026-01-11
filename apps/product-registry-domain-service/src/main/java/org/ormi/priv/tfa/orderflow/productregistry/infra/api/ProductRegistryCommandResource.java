@@ -29,7 +29,19 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 
 /**
- * TODO: Complete Javadoc
+ * Ressource REST pour les commandes du registre de produits.
+ *
+ * Expose des endpoints pour :
+ * <ul>
+ *   <li>Créer un produit ({@code POST /products})</li>
+ *   <li>Retirer un produit ({@code DELETE /products/{id}})</li>
+ *   <li>Mettre à jour le nom ({@code PATCH /products/{id}/name})</li>
+ *   <li>Mettre à jour la description ({@code PATCH /products/{id}/description})</li>
+ * </ul>
+ * Les commandes sont traduites depuis/vers des DTO via {@link CommandDtoMapper}
+ * et déléguées aux services applicatifs correspondants.
+ *
+ * @since 1.0
  */
 
 @Path("/products")
@@ -55,6 +67,13 @@ public class ProductRegistryCommandResource {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
+    /**
+     * Enregistre un nouveau produit.
+     *
+     * @param cmd données d'entrée du produit à créer
+     * @param uriInfo informations de contexte pour construire l'URI de ressource
+     * @return réponse HTTP 201 avec l'URI du produit créé
+     */
     public RestResponse<Void> registerProduct(RegisterProductCommandDto cmd, @Context UriInfo uriInfo) {
         final ProductId productId = registerProductService.handle(mapper.toCommand(cmd));
         return RestResponse.created(
@@ -63,6 +82,12 @@ public class ProductRegistryCommandResource {
 
     @DELETE
     @Path("/{id}")
+    /**
+     * Retire un produit existant.
+     *
+     * @param productId identifiant du produit (UUID sous forme de chaîne)
+     * @return réponse HTTP 204 si l'opération réussit
+     */
     public RestResponse<Void> retireProduct(@PathParam("id") String productId) {
         retireProductService.retire(new RetireProductCommand(new ProductId(UUID.fromString(productId))));
         return RestResponse.noContent();
@@ -71,6 +96,13 @@ public class ProductRegistryCommandResource {
     @PATCH
     @Path("/{id}/name")
     @Consumes(MediaType.APPLICATION_JSON)
+    /**
+     * Met à jour le nom d'un produit.
+     *
+     * @param productId identifiant du produit (UUID sous forme de chaîne)
+     * @param params paramètres contenant le nouveau nom
+     * @return réponse HTTP 204 si l'opération réussit
+     */
     public RestResponse<Void> updateProductName(@PathParam("id") String productId, UpdateProductNameParamsDto params) {
         updateProductService
                 .handle(new UpdateProductNameCommand(new ProductId(UUID.fromString(productId)), params.name()));
@@ -80,7 +112,14 @@ public class ProductRegistryCommandResource {
     @PATCH
     @Path("/{id}/description")
     @Consumes(MediaType.APPLICATION_JSON)
-    public RestResponse<Void> updateProductDescription(@PathParam("id") String productId,
+        /**
+         * Met à jour la description d'un produit.
+         *
+         * @param productId identifiant du produit (UUID sous forme de chaîne)
+         * @param params paramètres contenant la nouvelle description
+         * @return réponse HTTP 204 si l'opération réussit
+         */
+        public RestResponse<Void> updateProductDescription(@PathParam("id") String productId,
             UpdateProductDescriptionParamsDto params) {
         updateProductService.handle(new UpdateProductDescriptionCommand(new ProductId(UUID.fromString(productId)),
                 params.description()));

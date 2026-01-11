@@ -83,3 +83,52 @@ Tâche 2 : Analyse des concepts et implémentation
         Validation par les Agrégats : Dans le modèle CQRS, seul l'agrégat peut modifier son état. Il vérifie toutes les règles métier avant d'accepter une commande.
 
         Journalisation : Le journal d'événements permet de garder une trace immuable de chaque changement, garantissant une auditabilité totale en cas de corruption d'une vue de lecture.
+
+
+# Execice 2
+
+Tâche 5 : Stratégie de tests et Architecture
+
+1. Différence entre tests unitaires et tests d'intégration
+
+    Tests Unitaires : Ils vérifient le fonctionnement d'une petite unité de code isolée (généralement une classe ou une méthode). Les dépendances externes (base de données, services tiers) sont remplacées par des doublures (mocks). Ils sont très rapides à exécuter.
+
+    Tests d'Intégration : Ils vérifient que plusieurs modules ou composants fonctionnent correctement ensemble. Ils testent souvent les interactions avec des éléments réels (base de données, serveurs web, APIs) pour s'assurer que la configuration et la communication sont correctes.
+
+2. Pertinence d'une couverture de code à 100%
+
+Non, il n'est pas pertinent de viser systématiquement 100% de couverture.
+
+    Rapport coût/bénéfice : Tester des éléments triviaux (getters/setters, code généré) apporte peu de valeur mais coûte cher en maintenance.
+
+    Fausse sécurité : Une couverture à 100% ne garantit pas l'absence de bugs, elle indique seulement que chaque ligne a été exécutée, pas que tous les scénarios métier ont été vérifiés.
+
+    Focus : Il est préférable de couvrir à 100% les domaines critiques (logique métier complexe) et d'être plus souple sur le code d'infrastructure.
+
+3. Avantages de l'architecture en oignon pour les tests
+
+L'architecture en oignon place le Domaine au centre, indépendant de toute technologie.
+
+    Testabilité du métier : Comme le domaine ne dépend pas de la base de données ou du framework, on peut écrire des tests unitaires ultra-rapides pour la logique complexe sans démarrer de serveur.
+
+    Isolation : On peut tester les couches externes (infra) indépendamment de la logique métier en utilisant des interfaces.
+
+    Exemple (Tâche 3) : On observe que les tests du domaine (les agrégats) sont simples à écrire car ils ne manipulent que des objets métier purs, tandis que les tests de persistance (JPA) sont isolés dans leurs propres modules.
+
+4. Nomenclature des packages
+
+Cette structure permet de respecter le principe de responsabilité unique (SRP) :
+
+    model (ou Domain) : Contient le cœur métier (agrégats, entités, value objects). Aucune dépendance technique ici.
+
+    application : Orchestre les cas d'utilisation (services applicatifs). Elle fait le pont entre le monde extérieur et le domaine.
+
+    infra (Infrastructure) : Contient l'implémentation des détails techniques.
+
+    jpa / sql : Sous-package d'infra dédié à la persistance des données et aux dépôts (repositories).
+
+    web : Sous-package d'infra gérant les points d'entrée API (Controllers REST).
+
+    client : Contient généralement les clients pour appeler des services externes (APIs tierces).
+
+
