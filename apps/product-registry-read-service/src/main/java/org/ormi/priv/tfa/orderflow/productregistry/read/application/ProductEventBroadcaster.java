@@ -1,5 +1,7 @@
 package org.ormi.priv.tfa.orderflow.productregistry.read.application;
 
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.ormi.priv.tfa.orderflow.contracts.productregistry.v1.read.ProductStreamElementDto;
@@ -32,11 +34,13 @@ public class ProductEventBroadcaster {
         });
     }
 
-    // TODO: implement [Exercice 5]
-    // public Multi<ProductStreamElementDto> streamByProductId(String productId) {
-    // }
+    public Multi<ProductStreamElementDto> streamByProductId(String productId) {
+        return stream()
+                .select().where(e -> e.productId().equals(productId));
+    }
 
-    // TODO: implement [Exercice 5]
-    // public Multi<ProductStreamElementDto> streamByProductIds(List<String> productIds) {
-    // }
+    public Multi<ProductStreamElementDto> streamByProductIds(List<UUID> productIds) {
+        return stream()
+                .select().where(e -> productIds.contains(UUID.fromString(e.productId())));
+    }
 }

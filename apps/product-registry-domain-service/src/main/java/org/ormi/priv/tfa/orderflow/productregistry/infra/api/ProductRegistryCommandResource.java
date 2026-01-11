@@ -89,7 +89,7 @@ public class ProductRegistryCommandResource {
      * @return réponse HTTP 204 si l'opération réussit
      */
     public RestResponse<Void> retireProduct(@PathParam("id") String productId) {
-        retireProductService.retire(new RetireProductCommand(new ProductId(UUID.fromString(productId))));
+        retireProductService.handle(new RetireProductCommand(new ProductId(UUID.fromString(productId))));
         return RestResponse.noContent();
     }
 

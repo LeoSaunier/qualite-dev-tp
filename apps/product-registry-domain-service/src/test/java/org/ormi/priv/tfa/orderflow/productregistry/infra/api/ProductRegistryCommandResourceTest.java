@@ -134,7 +134,7 @@ public class ProductRegistryCommandResourceTest {
 
     @Test
     void delete_retire_valid_returns204() {
-        doAnswer(invocation -> null).when(retireProductService).retire(any());
+        doAnswer(invocation -> null).when(retireProductService).handle(any());
         UUID id = UUID.fromString("55555555-5555-5555-5555-555555555555");
         given()
         .when()
@@ -145,7 +145,7 @@ public class ProductRegistryCommandResourceTest {
 
     @Test
     void delete_retire_nonExisting_returns400() {
-        doThrow(new IllegalArgumentException("Product not found")).when(retireProductService).retire(any());
+        doThrow(new IllegalArgumentException("Product not found")).when(retireProductService).handle(any());
         UUID id = UUID.fromString("66666666-6666-6666-6666-666666666666");
         given()
         .when()

@@ -257,3 +257,277 @@ Si un événement déclenche plusieurs actions (ex: mise à jour stock + notific
     Sagas / Transactions compensatoires : Pour gérer les échecs complexes dans les flux distribués.
 
     Monitoring des délais de projection : Pour alerter si la "cohérence éventuelle" devient trop longue.
+
+# Exercice 5 - Résumé des Corrections
+
+## Vue d'ensemble
+
+Ce document résume toutes les corrections apportées au BFF (Backend For Frontend) et au service de lecture du registre de produits pour améliorer la qualité du code.
+
+## Tâche 1 : Correction des fuites techniques et métier
+
+### Problème identifié
+Dans `ReadProductService`, les méthodes `streamProductEvents` et `streamProductListEvents` exposaient des détails d'implémentation (filtrage avec `.select().where()`).
+
+### Solution appliquée
+**Fichiers modifiés :**
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ProductEventBroadcaster.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ProductEventBroadcaster.java)
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ReadProductService.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ReadProductService.java)
+
+**Changements :**
+1. Ajouté deux nouvelles méthodes dans `ProductEventBroadcaster` :
+   - `streamByProductId(String productId)` : filtre les événements pour un produit spécifique
+   - `streamByProductIds(List<UUID> productIds)` : filtre les événements pour plusieurs produits
+
+2. Simplifié `ReadProductService` pour utiliser ces nouvelles méthodes :
+```java
+// Avant
+return productEventBroadcaster.stream()
+        .select().where(e -> e.productId().equals(productId.value().toString()));
+
+// Après
+return productEventBroadcaster.streamByProductId(productId.value().toString());
+```
+
+**Bénéfices :**
+- Encapsulation améliorée
+- `ProductEventBroadcaster` gère maintenant toute la logique de filtrage
+- `ReadProductService` n'a plus besoin de connaître les détails d'implémentation
+
+---
+
+## Tâche 2 : Validation des entrées
+
+### Problème identifié
+Les paramètres d'entrée des méthodes `searchProducts` et `getProductById` dans `ProductRegistryQueryResource` n'étaient pas validés.
+
+### Solution appliquée
+**Fichiers modifiés :**
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResource.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResource.java)
+- [apps/product-registry-read-service/src/test/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResourceTest.java](apps/product-registry-read-service/src/test/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResourceTest.java)
+
+**Annotations ajoutées :**
+```java
+// Pour searchProducts
+@QueryParam("page") @Min(0) int page
+@QueryParam("size") @Min(1) @Max(100) int size
+
+// Pour getProductById
+@PathParam("id") @NotBlank @org.hibernate.validator.constraints.UUID String id
+```
+
+**Tests ajoutés :**
+- `get_search_withNegativePage_returns400()` : vérifie que page < 0 retourne 400
+- `get_search_withZeroSize_returns400()` : vérifie que size = 0 retourne 400
+- `get_search_withSizeTooLarge_returns400()` : vérifie que size > 100 retourne 400
+- `get_byId_withInvalidUUID_returns400()` : vérifie que UUID invalide retourne 400
+
+**Bénéfices :**
+- Protection contre les entrées invalides
+- Validation automatique par Quarkus/JAX-RS
+- Erreurs 400 explicites pour les clients
+
+---
+
+## Tâche 3 : Ségrégation des responsabilités
+
+### Problème identifié
+Dans `ProductRegistryQueryResource.searchProducts()`, la transformation de `ProductView` vers `ProductSummary` était effectuée au niveau de la couche de présentation (Resource), alors que c'est une responsabilité de la couche métier (Service).
+
+Ceci violait le principe de responsabilité du BFF : **le BFF devrait faire de la composition d'API, pas de la transformation de modèle**.
+
+### Solution appliquée
+**Fichiers modifiés :**
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ReadProductService.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ReadProductService.java)
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResource.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResource.java)
+
+**Changements :**
+1. **Dans `ReadProductService` :**
+   - Changé le type de retour de `SearchPaginatedResult` : `List<ProductView>` → `List<ProductSummary>`
+   - Déplacé la logique de transformation `ProductView` → `ProductSummary` dans le service
+
+```java
+public SearchPaginatedResult searchProducts(ProductQuery.ListProductBySkuIdPatternQuery query) {
+    final List<ProductView> views = repository.searchPaginatedViewsOrderBySkuId(...);
+    final List<ProductSummary> summaries = views.stream()
+            .map(view -> ProductSummary.Builder()
+                    .id(view.getId())
+                    .skuId(view.getSkuId())
+                    .name(view.getName())
+                    .status(view.getStatus())
+                    .catalogs(view.getCatalogs().size())
+                    .build())
+            .toList();
+    return new SearchPaginatedResult(summaries, ...);
+}
+```
+
+2. **Dans `ProductRegistryQueryResource` :**
+   - Simplifié pour appeler directement le mapper sur les summaries :
+
+```java
+// Avant (MAUVAIS - transformation au niveau Resource)
+result.page().stream()
+    .map(view -> ProductSummary.Builder()...)
+    .map(productSummaryDtoMapper::toDto)
+
+// Après (BON - uniquement mapping DTO)
+result.page().stream()
+    .map(productSummaryDtoMapper::toDto)
+```
+
+**Bénéfices :**
+- Séparation claire des responsabilités
+- Le service expose un modèle normalisé (`ProductSummary`)
+- La couche de présentation ne fait que du mapping DTO
+- Facilite la testabilité et la réutilisabilité
+
+---
+
+## Tâche 4 : Conformité avec les conventions établies
+
+### Problème 1 : Non-utilisation de ProductQuery
+
+**Problème identifié :**
+L'interface `ProductQuery` définit des structures de données pour les requêtes, mais `ProductRegistryQueryResource` ne les utilisait pas.
+
+**Solution appliquée :**
+**Fichiers modifiés :**
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ReadProductService.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/application/ReadProductService.java)
+- [apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResource.java](apps/product-registry-read-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResource.java)
+- [apps/product-registry-read-service/src/test/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResourceTest.java](apps/product-registry-read-service/src/test/java/org/ormi/priv/tfa/orderflow/productregistry/read/infra/api/ProductRegistryQueryResourceTest.java)
+
+**Changements :**
+1. Modifié les signatures de `ReadProductService` pour accepter les structures `ProductQuery` :
+```java
+// Avant
+public Optional<ProductView> findById(ProductId productId)
+public SearchPaginatedResult searchProducts(String skuIdPattern, int page, int size)
+
+// Après
+public Optional<ProductView> findById(ProductQuery.GetProductByIdQuery query)
+public SearchPaginatedResult searchProducts(ProductQuery.ListProductBySkuIdPatternQuery query)
+```
+
+2. Mis à jour `ProductRegistryQueryResource` pour créer les objets de requête :
+```java
+// Dans searchProducts
+final ProductQuery.ListProductBySkuIdPatternQuery query = 
+        new ProductQuery.ListProductBySkuIdPatternQuery(sku, page, size);
+final SearchPaginatedResult result = readProductService.searchProducts(query);
+
+// Dans getProductById
+final ProductId productId = productIdMapper.map(java.util.UUID.fromString(id));
+final ProductQuery.GetProductByIdQuery query = new ProductQuery.GetProductByIdQuery(productId);
+final var product = readProductService.findById(query);
+```
+
+3. Mis à jour les tests pour utiliser `any()` au lieu de valeurs spécifiques.
+
+### Problème 2 : Convention de nommage dans RetireProductService
+
+**Problème identifié :**
+La méthode `retire()` dans `RetireProductService` ne suivait pas la convention établie par les services voisins qui utilisent la sémantique "handle" (voir `RegisterProductService.handle()`, `UpdateProductService.handle()`).
+
+**Solution appliquée :**
+**Fichiers modifiés :**
+- [apps/product-registry-domain-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/application/RetireProductService.java](apps/product-registry-domain-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/application/RetireProductService.java)
+- [apps/product-registry-domain-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/infra/api/ProductRegistryCommandResource.java](apps/product-registry-domain-service/src/main/java/org/ormi/priv/tfa/orderflow/productregistry/infra/api/ProductRegistryCommandResource.java)
+
+**Changements :**
+```java
+// Avant
+public void retire(RetireProductCommand cmd)
+
+// Après
+public void handle(RetireProductCommand cmd)
+```
+
+Mise à jour de l'appel dans `ProductRegistryCommandResource` :
+```java
+// Avant
+retireProductService.retire(new RetireProductCommand(...));
+
+// Après
+retireProductService.handle(new RetireProductCommand(...));
+```
+
+**Bénéfices :**
+- Cohérence avec les autres services du projet
+- Interface uniforme pour tous les services de commandes
+- Code plus prévisible et maintenable
+
+---
+
+## Tâche 5 : Questions théoriques sur ProjectionDispatcher
+
+Un document détaillé a été créé : [doc/exercice5-reponses-questions.md](doc/exercice5-reponses-questions.md)
+
+### Contenu du document :
+
+1. **Limitations de l'implémentation actuelle**
+   - Cas d'un agrégat avec plusieurs vues
+   - Cas d'une vue alimentée par plusieurs agrégats
+   - Cas de plusieurs gestionnaires distribués
+
+2. **Propositions d'améliorations structurelles**
+   - Schéma architectural amélioré
+   - Nouvelle structure de classes (EventHandler, Registry, Dispatcher)
+   - Gestion des vues composites avec corrélation multi-agrégats
+   - Support multi-instances/multi-services avec verrouillage distribué
+
+3. **Initialisation d'une nouvelle vue avec données existantes**
+   - Replay depuis l'Event Log
+   - Snapshot + événements récents
+   - Dual-write temporaire
+   - Gestion de la cohérence avec watermark
+
+---
+
+## Récapitulatif des fichiers modifiés
+
+### Services de lecture (product-registry-read-service)
+1. ✅ `ProductEventBroadcaster.java` - Encapsulation du filtrage
+2. ✅ `ReadProductService.java` - Utilisation de ProductQuery + transformation vers ProductSummary
+3. ✅ `ProductRegistryQueryResource.java` - Validation + utilisation de ProductQuery
+4. ✅ `ProductRegistryQueryResourceTest.java` - Tests de validation + mise à jour mocks
+
+### Services de domaine (product-registry-domain-service)
+5. ✅ `RetireProductService.java` - Renommage retire → handle
+6. ✅ `ProductRegistryCommandResource.java` - Mise à jour appel handle
+
+### Documentation
+7. ✅ `doc/exercice5-reponses-questions.md` - Réponses aux questions théoriques
+
+---
+
+## Principes appliqués
+
+1. **Encapsulation** : Les détails d'implémentation sont cachés dans les composants appropriés
+2. **Séparation des responsabilités** : Chaque couche a des responsabilités clairement définies
+3. **Validation des entrées** : Protection contre les données invalides dès la couche API
+4. **Conventions de code** : Cohérence avec les patterns établis dans le projet
+5. **Architecture en couches** : Respect du modèle "onion layers" (Persistence → Business → API)
+
+---
+
+## Tests
+
+Tous les changements incluent :
+- ✅ Validation des paramètres d'entrée avec tests
+- ✅ Mise à jour des tests existants pour refléter les nouvelles signatures
+- ✅ Ajout de tests pour les cas limites (validation)
+
+---
+
+## Améliorations futures potentielles
+
+Ces améliorations sont documentées dans le fichier des réponses théoriques mais n'ont pas été implémentées dans cet exercice :
+
+1. **Registry dynamique** pour la découverte automatique des handlers
+2. **Handlers spécialisés** avec priorités et isolation
+3. **Corrélation multi-agrégats** pour les vues composites
+4. **Distribution avec verrouillage** pour le scaling horizontal
+5. **Replay d'événements** pour l'initialisation de nouvelles vues
+
+Ces améliorations pourraient être implémentées dans le cadre d'une évolution majeure du système.

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.ormi.priv.tfa.orderflow.kernel.product.ProductId;
 import org.ormi.priv.tfa.orderflow.kernel.product.ProductLifecycle;
 import org.ormi.priv.tfa.orderflow.kernel.product.SkuId;
+import org.ormi.priv.tfa.orderflow.kernel.product.views.ProductSummary;
 import org.ormi.priv.tfa.orderflow.kernel.product.views.ProductView;
 import org.ormi.priv.tfa.orderflow.productregistry.read.application.ReadProductService;
 
@@ -41,10 +42,20 @@ public class ProductRegistryQueryResourceTest {
                 .build();
     }
 
+    private ProductSummary sampleSummary(UUID id, String sku, String name) {
+        return ProductSummary.Builder()
+                .id(new ProductId(id))
+                .skuId(new SkuId(sku))
+                .name(name)
+                .status(ProductLifecycle.ACTIVE)
+                .catalogs(0)
+                .build();
+    }
+
     @Test
     void get_search_withMatch_returns200WithList() {
-        var v = sampleView(UUID.fromString("77777777-7777-7777-7777-777777777777"), "ABC-12345", "Prod1");
-        when(readProductService.searchProducts("ABC", 0, 10)).thenReturn(new ReadProductService.SearchPaginatedResult(List.of(v), 1));
+        var s = sampleSummary(UUID.fromString("77777777-7777-7777-7777-777777777777"), "ABC-12345", "Prod1");
+        when(readProductService.searchProducts(any())).thenReturn(new ReadProductService.SearchPaginatedResult(List.of(s), 1));
 
         given()
         .when()
@@ -56,7 +67,7 @@ public class ProductRegistryQueryResourceTest {
 
     @Test
     void get_search_withoutMatch_returns200EmptyList() {
-        when(readProductService.searchProducts("XYZ", 0, 10)).thenReturn(new ReadProductService.SearchPaginatedResult(List.of(), 0));
+        when(readProductService.searchProducts(any())).thenReturn(new ReadProductService.SearchPaginatedResult(List.of(), 0));
 
         given()
         .when()
@@ -68,8 +79,8 @@ public class ProductRegistryQueryResourceTest {
 
     @Test
     void get_search_noFilter_returns200List() {
-        var v1 = sampleView(UUID.fromString("88888888-8888-8888-8888-888888888888"), "DEF-54321", "Prod2");
-        when(readProductService.searchProducts("", 0, 10)).thenReturn(new ReadProductService.SearchPaginatedResult(List.of(v1), 1));
+        var s1 = sampleSummary(UUID.fromString("88888888-8888-8888-8888-888888888888"), "DEF-54321", "Prod2");
+        when(readProductService.searchProducts(any())).thenReturn(new ReadProductService.SearchPaginatedResult(List.of(s1), 1));
 
         given()
         .when()
@@ -83,7 +94,7 @@ public class ProductRegistryQueryResourceTest {
     void get_byId_existing_returns200WithProduct() {
         UUID id = UUID.fromString("99999999-9999-9999-9999-999999999999");
         var v = sampleView(id, "ABC-12345", "Prod1");
-        when(readProductService.findById(new ProductId(id))).thenReturn(Optional.of(v));
+        when(readProductService.findById(any())).thenReturn(Optional.of(v));
 
         given()
         .when()
@@ -96,12 +107,57 @@ public class ProductRegistryQueryResourceTest {
     @Test
     void get_byId_nonExisting_returns404() {
         UUID id = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-        when(readProductService.findById(new ProductId(id))).thenReturn(Optional.empty());
+        when(readProductService.findById(any())).thenReturn(Optional.empty());
 
         given()
         .when()
             .get("/api/products/" + id)
         .then()
             .statusCode(404);
+    }
+
+    @Test
+    void get_search_withNegativePage_returns400() {
+        given()
+        .when()
+            .get("/api/products?sku=ABC&page=-1&size=10")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    void get_search_withZeroSize_returns400() {
+        given()
+        .when()
+            .get("/api/products?sku=ABC&page=0&size=0")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    void get_search_withSizeTooLarge_returns400() {
+        given()
+        .when()
+            .get("/api/products?sku=ABC&page=0&size=101")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    void get_byId_withInvalidUUID_returns400() {
+        given()
+        .when()
+            .get("/api/products/not-a-valid-uuid")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    void get_byId_withMalformedUUID_returns400() {
+        given()
+        .when()
+            .get("/api/products/12345")
+        .then()
+            .statusCode(400);
     }
 }
