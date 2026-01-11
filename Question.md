@@ -132,3 +132,128 @@ Cette structure permet de respecter le principe de responsabilité unique (SRP) 
     client : Contient généralement les clients pour appeler des services externes (APIs tierces).
 
 
+# Exercice 4
+Tâche 1 : L'interface Projector et la Gestion d'Erreurs
+
+1. Rôle de l'interface Projector
+
+Le Projector a pour rôle de transformer un événement métier (provenant du journal d'événements) en une vue de lecture (état stocké en base de données). C'est le pont qui permet de synchroniser le modèle d'écriture avec le modèle de lecture dans le pattern CQRS.
+
+2. Rôle du type 
+
+Le type générique ```<S>``` représente le State (l'état) ou la Source de la projection. Il s'agit généralement de l'entité de vue (Read Model) qui est mise à jour par le projecteur après avoir traité l'événement.
+
+3. Javadoc de l'interface Projector
+
+```Java
+@param <E> Le type de l'événement à projeter.
+ @param <S> Le type de l'état (vue de lecture) résultant ou impacté par la projection.
+ 
+public interface Projector<E, S> { ... }
+```
+
+4. Intérêt de l'interface vs Classe concrète
+
+L'interface permet le découplage. On peut ainsi :
+
+    Interchanger les stratégies de projection sans modifier le code qui appelle le projecteur.
+
+    Faciliter les tests unitaires via des mocks.
+
+    Appliquer plusieurs projections différentes à partir d'un même événement.
+
+5. Rôle de ProjectionResult et concept de Monade
+
+ProjectionResult agit comme une Monade. Une monade est une structure qui enveloppe une valeur et permet de chaîner des opérations tout en gérant les effets de bord (comme les erreurs) de manière fluide.
+
+    Avantages par rapport à la gestion traditionnelle (try-catch) :
+
+        Déclaratif : On décrit le flux de succès/échec sans interrompre brutalement l'exécution par des exceptions.
+
+        Immuabilité : Le résultat est encapsulé, forçant le développeur à traiter le cas d'erreur explicitement.
+
+        Lisibilité : Évite le "Pyramid of Doom" des blocs try-catch imbriqués.
+
+Tâche 2 : Outboxing (Fiabilité des événements)
+
+1. Rôle de OutboxRepository
+
+Il sert à persister les événements dans une table temporaire ("Outbox") au sein de la même transaction que la modification métier. Cela garantit que si la commande est enregistrée, l'événement l'est aussi.
+
+2. Garantie de livraison dans un système distribué
+
+L'Outbox Pattern résout le problème du "Two-Phase Commit". Au lieu d'essayer d'écrire en base ET d'envoyer un message sur un bus (ce qui peut échouer), on écrit tout en base. Un processus séparé (Relay) lit ensuite la table Outbox pour envoyer les messages. Si l'envoi échoue, il peut être rejoué.
+
+3. Fonctionnement concret et Flux
+
+    Flux : Commande → Modification Base de données + Insertion Outbox (1 Transaction) → Service de Relay → Message Broker.
+
+    Diagramme de séquence simplifié :
+
+        ApplicationService démarre une transaction.
+
+        DomainService met à jour l'agrégat.
+
+        OutboxRepository insère l'événement dans la table OUTBOX.
+
+        La transaction est commitée.
+
+        Un OutboxProcessor (asynchrone) récupère l'entrée, publie l'événement, et marque l'entrée comme "traitée".
+
+4. Gestion des erreurs (Schéma Liquibase)
+
+Dans les fichiers XML Liquibase, on observe généralement des colonnes comme processed, retry_count ou last_error.
+
+    Si un événement ne peut pas être livré, le retry_count augmente.
+
+    Cela permet d'isoler les événements problématiques sans bloquer l'ensemble du système.
+
+Tâche 3 : Journal d'événements (Event Log)
+1. Rôle du journal
+
+Il sert de source de vérité historique. Il enregistre de manière immuable tout ce qui s'est passé dans le système, garantissant la traçabilité et l'auditabilité (crucial pour le commerce).
+2. Pourquoi seulement la méthode append ?
+
+    Immuabilité : On ne modifie jamais le passé. On ne peut qu'ajouter (append) de nouveaux faits.
+
+    Pas de suppression : Supprimer un événement casserait l'historique et la capacité d'audit.
+
+    Pas de récupération (ici) : Dans cette implémentation, la récupération est déléguée aux vues de lecture (CQRS). Le journal est une "écriture seule" pour maximiser les performances.
+
+3. Implications et autres usages
+
+    Implications : Le système est conçu pour la traçabilité plus que pour la reconstruction d'état complète (puisque ce n'est pas de l'Event Sourcing).
+
+    Autres usages : Audit légal, analyse de données (Business Intelligence), relecture pour corriger des erreurs de projection passées.
+
+Tâche 4 : Limites de CQRS
+
+1. Principales limites
+
+    Complexité : Doublement du code (modèles de lecture vs écriture).
+
+    Cohérence éventuelle : L'utilisateur peut ne pas voir sa modification immédiatement après avoir cliqué sur "valider".
+
+2. Limites déjà compensées
+
+L'utilisation de l'Outbox Pattern compense la perte de fiabilité des messages. L'application assure que l'événement finira forcément par être projeté, réduisant le risque de désynchronisation totale.
+
+3. Nouvelles limites introduites
+
+    Latence technique : Le passage par une table Outbox et un processus de relay ajoute un délai supplémentaire avant que la vue ne soit à jour.
+
+    Volume de données : Le journal d'événements et la table Outbox peuvent croître très rapidement.
+
+4. Cas d'une projection multiple
+
+Si un événement déclenche plusieurs actions (ex: mise à jour stock + notification + facture), une erreur dans une seule de ces actions peut rendre le système incohérent.
+
+    Risque : Si la projection "Stock" réussit mais "Facture" échoue, la vue globale est partiellement fausse.
+
+5. Bonus : Solutions
+
+    Idempotence : S'assurer que rejouer un événement plusieurs fois n'a pas d'effet négatif.
+
+    Sagas / Transactions compensatoires : Pour gérer les échecs complexes dans les flux distribués.
+
+    Monitoring des délais de projection : Pour alerter si la "cohérence éventuelle" devient trop longue.
